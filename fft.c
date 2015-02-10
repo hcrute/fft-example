@@ -1,58 +1,47 @@
-//author Henry Crute
+//Henry Crute hcrute@ucsc.edu
+
+
 #include <stdio.h>
-#include <math.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <time.h>
+#include <math.h>
 #include <fftw3.h>
 
-#define SWAP(a,b)tempr=(a);(a)=(b);(b)=tempr
-//tempr is a variable from our FFT function
+#include "fftlib.h"
 
-#define SAMPLE_SIZE 32
+clock_t start, end;
+double cpu_time_used;
 
-
-//prints array of numbers with specified length
-print_array(double *array, int length) {
-   int i;
-   for (i = 0; i < length; i++) {
-      fprintf(stdout, "%f\n", array[i]);
-   }
-}
-
-print_fftw_complex(fftw_complex *array, int length) {
-   int i;
-   for (i = 0; i < length; i++) {
-      fprintf(stdout, "%f\n", array[i][0]);
-      fprintf(stdout, "%f\n", array[i][1]);
-   }
-}
-
-//retreives data from file and inserts into buffer array
-//returns size of array
-//arguments, buffer array, and opened input file
-int get_array(double *buffer, FILE *in) {
-   uint8_t inputString[32];
-   int i = 0;
-	while(fgets(inputString, sizeof(inputString), in)) {
-      //replaces new line with null
-      int length = strlen(inputString);
-      if (length < 2) {
-         continue;
+//returns number of computations of size SAMPLE_SIZE
+int computeFFT(double *buffer, double *in, fftw_complex *out, FILE *input, fftw_plan plan) {
+   int i, j, size;
+   //fft loop gets numbers from file, copies into in, executes, repeat
+   size = get_array(in, input, SAMPLE_SIZE);
+   for (j = 0; size == SAMPLE_SIZE; j++) {
+      //for (i = 0; i < SAMPLE_SIZE; i++) {
+      //   in[i] = buffer[i];
+      //}
+      fftw_execute(plan);
+      if (j == 1) {
+         //print_magnitude(out, SAMPLE_SIZE / 2 + 1);
+         print_harmonic_frequencies(out, 4, SAMPLE_SIZE / 2 + 1);
       }
-		inputString[length - 2] = '\0';
-      //printf("doesn't fail here %s\n", inputString);
-      buffer[i] = strtol(inputString, NULL, 10);
-		//fprintf(stdout, "%i\n", number);
-      i++;
-	}
-   return i;
+      size = get_array(in, input, SAMPLE_SIZE);
+      //printf("size is %i\n", size);
+   }
+   return j + 1;
 }
+
 
 int main(int argc, char *argv[]) {
+   //variable declarations
    FILE *input;
+   double buffer[SAMPLE_SIZE];
    double *in = fftw_alloc_real(SAMPLE_SIZE);
    fftw_complex *out = fftw_alloc_complex(SAMPLE_SIZE / 2 + 1);
+   
    if (argc > 2) {
 		printf("Usage: fft input\r\n");
 	} else {
@@ -62,30 +51,20 @@ int main(int argc, char *argv[]) {
 		return(1);
 	  }
 	}
-   //absurd number of data points for buffer array
-   double buffer[262144 * 2];
-   int size = get_array(buffer, input);
-   //print_array(buffer, size);
-   
 
-   double sample[SAMPLE_SIZE];
-   int i;
-   for (i = 0; i < SAMPLE_SIZE; i++) {
-      sample[i] = buffer[i];
-   }
-   //print_array(in, SAMPLE_SIZE);
-   print_array(sample, SAMPLE_SIZE);
-   fprintf(stdout, "%i numbers\n", size);
+   //fprintf(stdout, "%i numbers\n", size);
    //real to complex plan
+   
    fftw_plan plan = fftw_plan_dft_r2c_1d(SAMPLE_SIZE, in, out,
                            FFTW_MEASURE | FFTW_PRESERVE_INPUT);
-   for (i = 0; i < SAMPLE_SIZE; i++) {
-      in[i] = buffer[i];
-   }
-   fftw_execute(plan);
-   print_array(in, SAMPLE_SIZE);
-   printf("\n");
-   print_fftw_complex(out, SAMPLE_SIZE / 2 + 1);
+   //measures how long it takes to do fft computations
+   start = clock(); ///////////////////////////////Start Clock
+   int count = computeFFT(buffer, in, out, input, plan);
+   end = clock(); /////////////////////////////////End Clock
+
+   fprintf(stdout, "computed fft of size %i, %i number of times\n", SAMPLE_SIZE, count);
+   fprintf(stdout, "cpu time used = %f\n", ((double) (end - start)) / CLOCKS_PER_SEC);
+
    //destructors
    fftw_destroy_plan(plan);
    fftw_free(in);
