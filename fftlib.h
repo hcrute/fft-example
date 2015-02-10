@@ -6,7 +6,7 @@
 //defines the array size of the sample at which we do fft
 #define SAMPLE_SIZE 2048
 //defines the speed at which we are sampling (need for accurate frequencies)
-#define SAMPLE_RATE 3500
+#define SAMPLE_RATE 2400
 
 //prints array of numbers with specified length
 void print_array(double *, int);
