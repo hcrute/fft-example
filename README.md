@@ -1,9 +1,9 @@
 fft_example
 ===========
 
-#Description
+###Description
 Takes in data, and calculates the dft using fft algorithm from fftw
-#Usage
+###Usage
 fft data.txt
-#Requirements
+###Requirements
 ffw3.3+ library
